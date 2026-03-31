@@ -100,7 +100,7 @@ kOmegaDynamic<BasicMomentumTransportModel>::kOmegaDynamic
         (
             "beta",
             this->coeffDict_,
-            0.072
+            0.075
         )
     ),
 
@@ -120,7 +120,7 @@ kOmegaDynamic<BasicMomentumTransportModel>::kOmegaDynamic
         (
             "gamma",
             this->coeffDict_,
-            0.52
+            0.55
         )
     ),
 
@@ -189,6 +189,11 @@ kOmegaDynamic<BasicMomentumTransportModel>::kOmegaDynamic
             IOobject::MUST_READ,
             IOobject::NO_WRITE
         )
+    ),
+
+    nStart_
+    (
+        this->coeffDict().template lookupOrDefault<label>("nStart", 10)
     ),
 
     window_(
@@ -481,12 +486,11 @@ bool kOmegaDynamic<BasicMomentumTransportModel>::read()
         gamma_.readIfPresent(this->coeffDict());
         alphaK_.readIfPresent(this->coeffDict());
         alphaOmega_.readIfPresent(this->coeffDict());
-
         this->coeffDict().readIfPresent("Zero-Decay", zeroDecay_);
         Cmu_0_.readIfPresent(this->coeffDict());
-
         dynamicCmuMin_.readIfPresent(this->coeffDict());
         dynamicCmuMax_.readIfPresent(this->coeffDict());
+        this->coeffDict().readIfPresent("nStart", nStart_);
 
         return true;
     }
@@ -528,7 +532,7 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
     // Update omega and G at walls
     omega_.boundaryFieldRef().updateCoeffs();   
 
-    // --- Switch Zero-Decay ---
+    // --- Zero-Decay Switch ---
     if (zeroDecay_)
     {
         // If active, use the zero-decay modification 
@@ -650,7 +654,8 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
 
     dynamicCmu_ = (Z && L) / ((Z && Z) + low_Z_);
 
-    if (this->runTime_.timeIndex() < 10)
+    // Starting procedure 
+    if (this->runTime_.timeIndex() < nStart_)
     {
         dynamicCmu_ = dimensionedScalar("cmuStart", dimless, 0.09);
     }

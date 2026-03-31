@@ -39,8 +39,8 @@ Description
         kOmegaDynamicCoeffs
         {
             betaStar    0.09;
-            gamma       0.52;
-            beta        0.072;
+            gamma       0.55;
+            beta        0.075;
             alphak      0.5;
             alphaOmega  0.5;
             dynamicCmuMin  0.0;
@@ -94,6 +94,8 @@ protected:
 
         // Switch for Zero-Decay version 
         Switch zeroDecay_;
+
+        label nStart_;
 
         const int window_;
         IOdictionary physicalProperties_;
