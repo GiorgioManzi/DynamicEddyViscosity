@@ -196,7 +196,8 @@ kOmegaDynamic<BasicMomentumTransportModel>::kOmegaDynamic
         this->coeffDict().template lookupOrDefault<label>("nStart", 10)
     ),
 
-    window_(
+    window_
+    (
         this->coeffDict().lookupOrDefault("nWindow", 2)
     ),
 
@@ -482,6 +483,7 @@ bool kOmegaDynamic<BasicMomentumTransportModel>::read()
 {
     if (eddyViscosity<RASModel<BasicMomentumTransportModel>>::read())
     {
+        betaStar_.readIfPresent(this->coeffDict());
         beta_.readIfPresent(this->coeffDict());
         gamma_.readIfPresent(this->coeffDict());
         alphaK_.readIfPresent(this->coeffDict());
@@ -508,7 +510,7 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
         return;
     }
 
-    // Local Ref. 
+    // Local ref. 
     const alphaField& alpha = this->alpha_;
     const rhoField& rho = this->rho_;
     const surfaceScalarField& alphaRhoPhi = this->alphaRhoPhi_;
@@ -516,7 +518,11 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
 
     volScalarField& nut = this->nut_;
 
-    const Foam::fvModels& fvModels(Foam::fvModels::New(this->mesh_));
+    const Foam::fvModels& fvModels
+    (
+        Foam::fvModels::New(this->mesh_)
+    );
+
     const Foam::fvConstraints& fvConstraints
     (
         Foam::fvConstraints::New(this->mesh_)
@@ -524,10 +530,18 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
 
     eddyViscosity<RASModel<BasicMomentumTransportModel>>::correct();
 
-    volScalarField divU(fvc::div(fvc::absolute(this->phi(), U)));
+    volScalarField divU
+    (
+        fvc::div(fvc::absolute(this->phi(), U))
+    );
 
     tmp<volTensorField> tgradU = fvc::grad(U);
-    volScalarField G(this->GName(), nut*(tgradU() && dev(twoSymm(tgradU()))));
+    
+    volScalarField G
+    (
+        this->GName(), 
+        nut*(tgradU() && dev(twoSymm(tgradU())))
+    );
 
     // Update omega and G at walls
     omega_.boundaryFieldRef().updateCoeffs();   
@@ -545,7 +559,8 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
     }
 
     // Specific dissipation equation
-    tmp<fvScalarMatrix> omegaEqn(
+    tmp<fvScalarMatrix> omegaEqn
+    (
         fvm::ddt(alpha, rho, omega_)
       + fvm::div(alphaRhoPhi, omega_)
       - fvm::laplacian(alpha*rho*DomegaEff(), omega_)
@@ -565,7 +580,8 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
     bound(omega_, this->omegaMin_);
 
     // Turbulent kinetic energy equation
-    tmp<fvScalarMatrix> kEqn(
+    tmp<fvScalarMatrix> kEqn
+    (
         fvm::ddt(alpha, rho, k_)
       + fvm::div(alphaRhoPhi, k_)
       - fvm::laplacian(alpha*rho*DkEff(), k_)
@@ -594,7 +610,7 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
     volSymmTensorField sum_uu = symm(U * U);
     volVectorField sum_u = U;
 
-    volSymmTensorField kES_mean = (2/betaStar_) * (k_/(omega_ + low_omega_)) * S;
+    volSymmTensorField kES_mean = (2.0/betaStar_) * (k_/(omega_ + low_omega_)) * S;
     volSymmTensorField sum_S = S;
 
     volScalarField k_mean = k_;
@@ -605,7 +621,6 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
       + sqr(S.component(symmTensor::YY))
       + sqr(S.component(symmTensor::ZZ));
 
-
     tgradU.clear();
 
     for (int i = 0; i < window_ - 1; ++i)
@@ -615,7 +630,7 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
 
         const volSymmTensorField& S_i = SPrev_[i];
 
-        kES_mean += (2/betaStar_)*(kPrev_[i]/(omegaPrev_[i] + low_omega_)) * S_i;
+        kES_mean += (2.0/betaStar_)*(kPrev_[i]/(omegaPrev_[i] + low_omega_)) * S_i;
         sum_S += S_i;
 
         k_mean += kPrev_[i];
@@ -648,9 +663,9 @@ void kOmegaDynamic<BasicMomentumTransportModel>::correct()
       + sqr(S_average.component(symmTensor::YY))
       + sqr(S_average.component(symmTensor::ZZ));
 
-    omega_mean = (1 / (k_mean_T + low_k_)) * ((k_mean * omega_mean) + ((this->nu()) / betaStar_) * (squaredS_mean - SSquared_mean));
+    omega_mean = (1.0 / (k_mean_T + low_k_)) * ((k_mean * omega_mean) + ((this->nu()) / betaStar_) * (squaredS_mean - SSquared_mean));
 
-    volSymmTensorField Z = kES_mean - (2/betaStar_) * (k_mean_T / (omega_mean + low_omega_)) * S_average;
+    volSymmTensorField Z = kES_mean - (2.0/betaStar_) * (k_mean_T / (omega_mean + low_omega_)) * S_average;
 
     dynamicCmu_ = (Z && L) / ((Z && Z) + low_Z_);
 

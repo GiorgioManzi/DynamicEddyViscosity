@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2021 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2024 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -91,16 +91,15 @@ protected:
         dimensionedScalar alphaOmega_;
         dimensionedScalar Cmu_0_;
         
-
         // dynamicCmu clipping limits
         dimensionedScalar dynamicCmuMin_;
         dimensionedScalar dynamicCmuMax_;
 
-        // Switch for Zero-Decay version 
+        // Switch for Zero-Decay version
         Switch zeroDecay_;
 
         label nStart_;
-
+        
         const int window_;
         IOdictionary physicalProperties_;
 
@@ -130,6 +129,7 @@ protected:
         label ringIndex_;
 
     // Private Member Functions
+        void boundOmega();
         virtual void correctNut();
         virtual tmp<fvScalarMatrix> kSource() const;
         virtual tmp<fvScalarMatrix> omegaSource() const;
@@ -190,8 +190,7 @@ public:
             return volScalarField::New
             (
                 "epsilon",
-                k_*omega_,
-                omega_.boundaryField().types()
+                betaStar_*k_*omega_
             );
         }
 
@@ -199,9 +198,9 @@ public:
         virtual void correct();
 
     // Member Operators
-        // disallow assignment
+        // Do not allow assignment
         void operator=(const kOmegaDynamic&) = delete;
-    };
+};
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
