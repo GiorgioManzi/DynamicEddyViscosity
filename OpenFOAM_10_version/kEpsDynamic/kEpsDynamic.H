@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2021 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2022 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -22,12 +22,12 @@ License
     along with OpenFOAM.  If not, see <http://www.gnu.org/licenses/>.
 
 Class
-    Foam::RASModels::kOmegaDynamic
+    Foam::RASModels::kEpsDynamic
 
 Description
-    Dynamic k-omega turbulence model based on the Wilcox 1988 k-omega formulation. 
-
-
+    Dynamic k-epsilon turbulence model based on the Abe, Kondoh and Nagano's low-Reynolds number formulation.
+	
+	References:
 
     References: 
     \verbatim 
@@ -38,29 +38,30 @@ Description
         Tessier Urrecha, Y., Manzi, G., Cancellotti, F., & Cimarelli, A. (2026).
         Development of dynamic RANS closures for coarse-grained approaches to 
         turbulence. Under review.
-    \endverbatim
     
-    The default model coefficients are
+        Abe K., Kondoh T., Nagano Y., 1994. A new turbulence model for predicting
+	    fluid flow and heat transfer in separating and reattaching flows-I. Flow
+	    field calculations. Int. J. Heat and Mass Transfer 37(1), pp 138-151.
+
+    The default model coefficients are given as:
     \verbatim
-        kOmegaDynamicCoeffs
+        AbeKondohNaganoKECoeffs
         {
-            betaStar    0.09;
-            gamma       0.55;
-            beta        0.075;
-            alphak      0.5;
-            alphaOmega  0.5;
-            dynamicCmuMin  0.0;
-            dynamicCmuMax  0.2;
-            nWindow    2;
+            Cmu         0.09;
+            C1          1.5;
+            C2          1.9;
+            sigmaEps    1.4;
+            sigmaK      1.4;
         }
     \endverbatim
 
 SourceFiles
-    kOmegaDynamic.C
+    kEpsDynamic.C
 
 \*---------------------------------------------------------------------------*/
-#ifndef kOmegaDynamic_H
-#define kOmegaDynamic_H
+
+#ifndef kEpsDynamic_H
+#define kEpsDynamic_H
 
 #include "RASModel.H"
 #include "eddyViscosity.H"
@@ -73,11 +74,11 @@ namespace RASModels
 {
 
 /*---------------------------------------------------------------------------*\
-                       Class kOmegaDynamic Declaration
+                       Class kEpsDynamic Declaration
 \*---------------------------------------------------------------------------*/
 
 template<class BasicMomentumTransportModel>
-class kOmegaDynamic
+class kEpsDynamic
 :
     public eddyViscosity<RASModel<BasicMomentumTransportModel>>
 {
@@ -86,66 +87,73 @@ protected:
     // Protected data
 
         // Model coefficients
-        dimensionedScalar betaStar_;
-        dimensionedScalar beta_;
-        dimensionedScalar gamma_;
-        dimensionedScalar alphaK_;
-        dimensionedScalar alphaOmega_;
-        dimensionedScalar Cmu_0_;        
+
+        //dimensionedScalar Cmu_;
+        dimensionedScalar C1_;
+        dimensionedScalar C2_;
+        dimensionedScalar C3_;
+        dimensionedScalar sigmak_;
+        dimensionedScalar sigmaEps_;
 
         // dynamicCmu clipping limits
         dimensionedScalar dynamicCmuMin_;
         dimensionedScalar dynamicCmuMax_;
 
-        // Switch for Zero-Decay version 
-        Switch zeroDecay_;
-
         label nStart_;
 
-        const int window_;
-        IOdictionary physicalProperties_;
-
-        dimensionedScalar low_omega_;
-        dimensionedScalar low_k_;
-        dimensionedScalar low_Z_;
+		const int window_;
+		IOdictionary physicalProperties_;
+			
+		dimensionedScalar low_epsilon_;
+		dimensionedScalar low_k_;
+		dimensionedScalar low_M_;
 
         // Fields
+			
         volScalarField k_;
-        volScalarField omega_;
+        volScalarField epsilon_;
 
-        volSymmTensorField S;
-        volTensorField gU;
+		volSymmTensorField S;
+		volTensorField gU;
         volScalarField dynamicCmu_;
-        volScalarField CmuStar_;
 
-        // Dynamic Procedure Buffer
-        PtrList<volVectorField> UPrev_;
-        PtrList<volScalarField> kPrev_;
-        PtrList<volScalarField> omegaPrev_;
+        // Low-Re damping function
+		const volScalarField& y_;	
+		volScalarField f2Field_;
+		
+        //Dynamic procedure buffer
+		PtrList<volVectorField> UPrev_;
+		PtrList<volScalarField> kPrev_;
+	    PtrList<volScalarField> epsilonPrev_;
         PtrList<volSymmTensorField> SPrev_;
-        PtrList<volVectorField> Uprint_;
-        PtrList<volScalarField> kprint_;
-        PtrList<volScalarField> omegaprint_;
-        PtrList<volTensorField> gUprint_;
-        
+		PtrList<volVectorField> Uprint_;
+		PtrList<volScalarField> kprint_;
+	    PtrList<volScalarField> epsilonprint_;
+		PtrList<volTensorField> gUprint_;
+			
         label ringIndex_;
 
     // Private Member Functions
+
+        //tmp<volScalarField> fMu() const;
+        tmp<volScalarField> f2() const;
+
         virtual void correctNut();
         virtual tmp<fvScalarMatrix> kSource() const;
-        virtual tmp<fvScalarMatrix> omegaSource() const;
+        virtual tmp<fvScalarMatrix> epsilonSource() const;
 
 public:
 
     typedef typename BasicMomentumTransportModel::alphaField alphaField;
     typedef typename BasicMomentumTransportModel::rhoField rhoField;
 
-    // Runtime type info
-    TypeName("kOmegaDynamic");
+    //- Runtime type info
+    TypeName("kEpsDynamic");
 
     // Constructors
 
-        kOmegaDynamic
+        //- Construct from components
+        kEpsDynamic
         (
             const alphaField& alpha,
             const rhoField& rho,
@@ -157,42 +165,42 @@ public:
         );
 
         // Do not allow copy
-        kOmegaDynamic(const kOmegaDynamic&) = delete;
+        kEpsDynamic(const kEpsDynamic&) = delete;
 
     // Destructor
-    virtual ~kOmegaDynamic() {}
+    virtual ~kEpsDynamic(){}
 
     // Member Functions
 
-        // Read coeff.
+        // Read coeff. 
         virtual bool read();
 
         // Return the effective diffusivity for k
         tmp<volScalarField> DkEff() const
         {
-            return volScalarField::New("DkEff", alphaK_*this->nut_ + this->nu());
+            return volScalarField::New("DkEff",(this->nut_/sigmak_ + this->nu()));
         }
-        
-        // Return the effective diffusivity for omega
-        tmp<volScalarField> DomegaEff() const
+
+        // Return the effective diffusivity for epsilon
+        tmp<volScalarField> DepsilonEff() const
         {
-            return volScalarField::New("DomegaEff", alphaOmega_*this->nut_ + this->nu());
+            return volScalarField::New("DepsilonEff",(this->nut_/sigmaEps_ + this->nu()));
         }
 
         // Return the turbulent kinetic energy
         virtual tmp<volScalarField> k() const { return k_; }
 
-        // Return the specific dissipation rate
-        virtual tmp<volScalarField> omega() const { return omega_; }
+        // Return the turbulence kinetic energy dissipation
+        virtual tmp<volScalarField> epsilon() const{return epsilon_;}
 
-        // Return the turbulence dissipation
-        virtual tmp<volScalarField> epsilon() const                     
+        // Return the turbulence specific dissipation rate
+        virtual tmp<volScalarField> omega() const
         {
             return volScalarField::New
             (
-                "epsilon",
-                k_*omega_,
-                omega_.boundaryField().types()
+                "omega",
+                epsilon_/(dynamicCmu_*k_),
+                epsilon_.boundaryField().types()
             );
         }
 
@@ -201,8 +209,8 @@ public:
 
     // Member Operators
         // Do not allow assignment
-        void operator=(const kOmegaDynamic&) = delete;
-    };
+        void operator=(const kEpsDynamic&) = delete;
+};
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -212,7 +220,7 @@ public:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 #ifdef NoRepository
-    # include "kOmegaDynamic.C"
+    # include "kEpsDynamic.C"
 #endif
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //

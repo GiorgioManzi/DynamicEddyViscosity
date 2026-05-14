@@ -25,7 +25,7 @@ Class
     Foam::RASModels::kOmegaDynamic
 
 Description
-    Dynamic k-omega turbulence model for incompressible flows.
+    Dynamic k-omega turbulence model based on Wilcox 1988 k-omega formulation.
 
     References: 
     \verbatim 
