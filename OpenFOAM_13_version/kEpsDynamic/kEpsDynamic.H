@@ -2,7 +2,7 @@
   =========                 |
   \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
    \\    /   O peration     | Website:  https://openfoam.org
-    \\  /    A nd           | Copyright (C) 2011-2022 OpenFOAM Foundation
+    \\  /    A nd           | Copyright (C) 2011-2024 OpenFOAM Foundation
      \\/     M anipulation  |
 -------------------------------------------------------------------------------
 License
@@ -26,8 +26,6 @@ Class
 
 Description
     Dynamic k-epsilon turbulence model based on the Abe, Kondoh and Nagano's low-Reynolds number formulation.
-	
-	References:
 
     References: 
     \verbatim 
@@ -38,13 +36,13 @@ Description
         Tessier Urrecha, Y., Manzi, G., Cancellotti, F., & Cimarelli, A. (2026).
         Development of dynamic RANS closures for coarse-grained approaches to 
         turbulence. Under review.
-    
+
         Abe K., Kondoh T., Nagano Y., 1994. A new turbulence model for predicting
 	    fluid flow and heat transfer in separating and reattaching flows-I. Flow
 	    field calculations. Int. J. Heat and Mass Transfer 37(1), pp 138-151.
     \endverbatim
-    
-    The default model coefficients are given as:
+
+    The default model coefficients are:
     \verbatim
         kEpsDynamicCoeffs
         {
@@ -135,6 +133,7 @@ protected:
 
     // Private Member Functions
 
+        void boundEpsilon();
         tmp<volScalarField> f2() const;
 
         virtual void correctNut();

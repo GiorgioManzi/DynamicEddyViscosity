@@ -38,7 +38,7 @@ Description
         turbulence. Under review.
     \endverbatim
     
-    The default model coefficients are
+    The default model coefficients are:
     \verbatim
         kOmegaDynamicCoeffs
         {
@@ -166,25 +166,25 @@ public:
         // Read coeff.
         virtual bool read();
 
-        // Return effective diffusivity for k
+        // Return the effective diffusivity for k
         tmp<volScalarField> DkEff() const
         {
             return volScalarField::New("DkEff", alphaK_*this->nut_ + this->nu());
         }
         
-        // Return effective diffusivity for omega
+        // Return the effective diffusivity for omega
         tmp<volScalarField> DomegaEff() const
         {
             return volScalarField::New("DomegaEff", alphaOmega_*this->nut_ + this->nu());
         }
 
-        // Return turbulent kinetic energy
+        // Return the turbulent kinetic energy
         virtual tmp<volScalarField> k() const { return k_; }
 
-        // Return specific dissipation rate
+        // Return the specific dissipation rate
         virtual tmp<volScalarField> omega() const { return omega_; }
 
-        // Return turbulence dissipation
+        // Return the turbulence dissipation
         virtual tmp<volScalarField> epsilon() const                     
         {
             return volScalarField::New

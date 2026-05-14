@@ -153,6 +153,27 @@ kEpsDynamic<BasicMomentumTransportModel>::kEpsDynamic
             1.4
         )
     ),
+
+        dynamicCmuMin_
+    (
+        dimensioned<scalar>::lookupOrAddToDict
+        (
+            "dynamicCmuMin",
+            this->coeffDict_,
+            0.0
+        )
+    ),
+
+    dynamicCmuMax_
+    (
+        dimensioned<scalar>::lookupOrAddToDict
+        (
+            "dynamicCmuMax",
+            this->coeffDict_,
+            0.2
+        )
+    ),
+    
 	window_
     (
         this->coeffDict().lookupOrDefault("nWindow", 2)
